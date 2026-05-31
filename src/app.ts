@@ -5,8 +5,8 @@ import morgan from "morgan";
 
 const app = express();
 
-// Parse JSON request bodies
-app.use(express.json());
+// Parse JSON request bodies (allow non-object payloads like arrays or primitives)
+app.use(express.json({ strict: false }));
 
 app.use(observabilityMiddleware);
 

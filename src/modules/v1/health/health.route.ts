@@ -58,6 +58,9 @@ routeRegistry.register({
           },
         },
       },
+      "405": {
+        description: "Method not allowed",
+      },
     },
   },
 });

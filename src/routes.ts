@@ -3,6 +3,7 @@ import modulesRouter from "./modules";
 import { notFound, rootHandler } from "./middlewares";
 import swaggerUi from "swagger-ui-express";
 import { routeRegistry } from "./docs";
+import eventRoutes from "./modules/events";
 
 const router = Router();
 
@@ -14,10 +15,12 @@ router.use(
   "/api-docs",
   swaggerUi.serve,
   (_req: Request, res: Response, next: NextFunction) => {
-    const spec = routeRegistry.generateOpenAPI("/*__PROJECT_NAME__*/", "1.0.0");
+    const spec = routeRegistry.generateOpenAPI("API SCALABILITY", "1.0.0");
     swaggerUi.setup(spec)(_req, res, next);
   },
 );
+
+router.use(eventRoutes);
 
 router.use("/api", modulesRouter);
 
