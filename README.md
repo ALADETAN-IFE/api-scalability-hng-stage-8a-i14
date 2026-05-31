@@ -1,174 +1,147 @@
-# Append-Only Event Store
+# API Scalability Backend
 
-> HNG Internship i14 — Backend Stage 8a  
-> Built by [IfeCodes](https://ifecodes.xyz)
+HNG Stage 8 backend for an append-only event store.
 
-A minimal, crash-safe event store where **`events.log` is the database** — no SQLite, no JSON rewrites, no ORM. One JSON object per line, append-only, forever.
+## Overview
 
----
+This service stores events in `events.log`, replays the log on startup, and serves reads from an in-memory index for fast lookups.
 
-## What it does
+## Features
 
-| Concern | Solution |
-|---|---|
-| Persistence | Append-only `events.log` — one JSON line per event |
-| Fast reads | In-memory `Map<id, {offset, length}>` — direct byte-seek, zero scanning |
-| Crash recovery | Log replay on startup rebuilds the index; logs recovered count |
-| Writes | `fs.appendFileSync` — atomic enough for single-process use |
+- Append-only writes to `events.log`
+- Startup recovery from the log file
+- Direct byte-seek reads by event ID
+- Swagger docs at `/api-docs`
+- Health endpoint at `/api/v1/health`
 
----
+## Requirements
 
-## Architecture
+- Node.js 18+
+- npm
+- `.env` with:
 
-```
-POST /events
-  │
-  ├─ Validate body (must have `type`)
-  ├─ Generate ID + timestamp
-  ├─ Serialize to JSON line
-  ├─ fs.appendFileSync → events.log          (disk, append-only)
-  └─ index.set(id, { offset, length })       (in-memory)
-
-GET /events/:id
-  │
-  ├─ index.get(id) → { offset, length }
-  ├─ fs.openSync + fs.readSync(buf, offset)  (direct byte seek)
-  └─ JSON.parse(buf) → response
-
-Startup
-  │
-  ├─ readline streams events.log line by line
-  ├─ Tracks running byte offset per line
-  ├─ Rebuilds index entry for each valid line
-  └─ Logs: "✓ Index rebuilt — N event(s) recovered."
+```env
+PORT=4000
+NODE_ENV=development
 ```
 
-The key insight: because we track `{ offset, length }` for every event in memory, reading is a single `fs.readSync` call positioned exactly at that record. We never scan the file after startup.
+## Scripts
 
----
+```bash
+npm run dev
+npm run build
+npm start
+npm run lint
+npm run format
+```
 
-## Endpoints
+## Run Locally
 
-### `POST /events`
-Append a new event. Body must be a JSON object with at least a `type` field.
+```bash
+npm install
+npm run dev
+```
+
+After build:
+
+```bash
+npm run build
+npm start
+```
+
+## API
+
+Base URL: `http://localhost:4000`
+
+### Swagger
+
+- `GET /api-docs`
+
+### Events
+
+- `POST /events`
+- `GET /events/:id`
+- `GET /events`
+- `GET /stats`
+
+### Health
+
+- `GET /api/v1/health`
+
+## Example Requests
+
+### Create an event
 
 ```bash
 curl -X POST http://localhost:4000/events \
   -H "Content-Type: application/json" \
-  -d '{"type":"payment.initiated","userId":"u_001","amount":5000,"currency":"NGN"}'
+  -d '{
+    "payload": {
+      "type": "payment.completed",
+      "paymentId": "pay_01HZZ8J8Q5Q9M4K1K5G7T8B2C1",
+      "amount": 2500,
+      "currency": "USD",
+      "status": "success"
+    }
+  }'
 ```
+
+Example response:
 
 ```json
 {
-  "ok": true,
+  "status": "success",
   "event": {
-    "id": "evt_1780192012606_wkwknr1",
-    "timestamp": "2026-05-31T01:46:52.606Z",
-    "type": "payment.initiated",
-    "userId": "u_001",
-    "amount": 5000,
-    "currency": "NGN"
+    "id": "8e6b0b7d-6a5a-4f9f-9c1d-1a0f2d8bf3a0",
+    "createdAt": "2026-05-31T12:00:00.000Z",
+    "payload": {
+      "type": "payment.completed",
+      "paymentId": "pay_01HZZ8J8Q5Q9M4K1K5G7T8B2C1",
+      "amount": 2500,
+      "currency": "USD",
+      "status": "success"
+    }
   }
 }
 ```
 
-### `GET /events/:id`
-Fetch a single event by ID. Uses direct byte-seek — no log scan.
+### Fetch one event
 
 ```bash
-curl http://localhost:4000/events/181f62f7-5894-4dd1-9c73-0df346ebaa82
+curl http://localhost:4000/events/8e6b0b7d-6a5a-4f9f-9c1d-1a0f2d8bf3a0
 ```
+
+Example response:
 
 ```json
 {
-  "ok": true,
+  "status": "success",
   "event": {
-    "id": "evt_1780192012606_wkwknr1",
-    "timestamp": "2026-05-31T01:46:52.606Z",
-    "type": "payment.initiated",
-    "userId": "u_001",
-    "amount": 5000,
-    "currency": "NGN"
+    "payload": {
+      "type": "payment.completed",
+      "paymentId": "pay_01HZZ8J8Q5Q9M4K1K5G7T8B2C1",
+      "amount": 2500,
+      "currency": "USD",
+      "status": "success"
+    },
+    "id": "8e6b0b7d-6a5a-4f9f-9c1d-1a0f2d8bf3a0",
+    "createdAt": "2026-05-31T12:00:00.000Z"
   }
 }
 ```
 
-Returns `404` if the ID is not in the index.
+## Storage Notes
 
-### `GET /events`
-List all event IDs currently in the index.
+- `events.log` is the source of truth.
+- Each line is a single JSON event.
+- On startup, the log is replayed to rebuild the in-memory index.
+- Do not edit `events.log` by hand.
 
-```bash
-curl http://localhost:4000/events
-# {"ok":true,"count":5,"ids":["evt_...","evt_...",...]}
-```
+## Demo Flow
 
-### `GET /health`
-Liveness check. Returns current indexed event count.
-
----
-
-## Running locally
-
-```bash
-git clone <repo-url>
-cd event-store
-npm install
-npm start
-```
-
-Server starts on `http://localhost:4000`.  
-Set `PORT` env var to override.
-
-```bash
-PORT=8080 npm start
-```
-
----
-
-## Demo scenario (for the 30s video)
-
-```bash
-# 1. Start fresh — 0 events recovered
-npm start
-
-# 2. Write three events
-curl -X POST http://localhost:4000/events -d '{"type":"user.signup","userId":"u_001"}'
-curl -X POST http://localhost:4000/events -d '{"type":"payment.initiated","amount":5000}'
-curl -X POST http://localhost:4000/events -d '{"type":"payment.completed","status":"success"}'
-
-# 3. Fetch one by ID (copy an ID from step 2 output)
-curl http://localhost:4000/events/evt_<id>
-
-# 4. Kill the server (Ctrl+C or kill PID)
-
-# 5. Restart — watch the recovery log
-npm start
-# → "✓ Index rebuilt — 3 event(s) recovered."
-
-# 6. Fetch the same ID again — still works
-curl http://localhost:4000/events/evt_<id>
-```
-
----
-
-## Design decisions
-
-**Why `fs.appendFileSync`?**  
-Synchronous append is effectively atomic for single-process writes — the OS guarantees the write completes before the call returns. A production version would use a write-ahead queue or file locking for concurrent writers.
-
-**Why no UUID library?**  
-`evt_${Date.now()}_${random}` is collision-resistant enough for a prototype. Easy to swap for `crypto.randomUUID()` (Node 14.17+) with zero dependency changes.
-
-**Why rebuild the index on every restart?**  
-The log is the source of truth. We could persist the index to a sidecar file, but that adds complexity and a consistency problem. For a 2M MAU social platform's event volume, replaying a log of reasonable size at startup is fast — and simpler to reason about.
-
----
-
-## Dependencies
-
-```
-express   ^5.x   — HTTP server
-```
-
-That's it. Everything else is Node built-ins: `fs`, `readline`, `path`, `Buffer`.
+1. Start the server.
+2. Create a payment event.
+3. Copy the returned `id`.
+4. Fetch the event by ID.
+5. Stop and restart the server.
+6. Fetch the same ID again to confirm recovery.
