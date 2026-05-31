@@ -61,11 +61,13 @@ class RouteRegistry {
 
     // Build paths from routes
     this.routes.forEach((route) => {
-      if (!paths[route.path]) {
-        paths[route.path] = {};
+      const openapiPath = route.path.replace(/:([A-Za-z0-9_]+)/g, "{$1}");
+
+      if (!paths[openapiPath]) {
+        paths[openapiPath] = {};
       }
 
-      const pathItem = paths[route.path] as Record<string, unknown>;
+      const pathItem = paths[openapiPath] as Record<string, unknown>;
       const method = route.method.toLowerCase();
 
       pathItem[method] = {
