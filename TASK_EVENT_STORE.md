@@ -47,7 +47,7 @@ A small HTTP service that stores events in an append-only log and reads them bac
 
 ## Marking (Implementation: 50 / README + Demo Video: 50)
 
-The implementation below is worth **50 marks**. The README write-up and demo video account for the other **50** (total **100**). See `STAGE7_OVERVIEW.md` for the README + demo breakdown.
+The implementation below is worth **50 marks**. The README write-up and demo video account for the other **50** (total **100**). See `README.md` for the README + demo breakdown.
 
 | # | Criterion | Marks |
 |---|---|---|

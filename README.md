@@ -130,6 +130,81 @@ Example response:
 }
 ```
 
+### List event IDs
+
+```bash
+curl http://localhost:4000/events
+```
+
+Example response:
+
+```json
+{
+  "status": "success",
+  "total": 2,
+  "ids": [
+    "8e6b0b7d-6a5a-4f9f-9c1d-1a0f2d8bf3a0",
+    "4a2a9c2f-1f5f-4d6f-9d16-5e8f1b6a24b7"
+  ]
+}
+```
+
+### Stats
+
+```bash
+curl http://localhost:4000/stats
+```
+
+Example response:
+
+```json
+{
+  "status": "success",
+  "total": 12,
+  "bytes": 1840
+}
+```
+
+## Architecture diagram
+
+```mermaid
+flowchart LR
+  A[POST /events] --> B[Validation]
+  B --> C[Build event {id, createdAt}]
+  C --> D[Append JSON line to events.log]
+  D --> E[Update in-memory index Map(id -> {offset,length})]
+  E --> F[Return created event]
+
+  subgraph Read
+    G[GET /events/:id] --> H[index.get(id)]
+    H --> I[fs.readSync(offset, length)]
+    I --> J[JSON.parse -> response]
+  end
+```
+
+## Screenshots
+
+- Recovery log after restart: [add recovery screenshot here]
+
+## Demo video
+
+- 30s demo (upload link): [add demo video link here]
+
+## What I struggled with
+
+- Appending to the log file without rewriting it.
+
+## What I learned
+
+- How to implement an append-only event log with byte offsets for fast reads.
+- How to safely parse and recover a log file with streaming and buffered newline handling.
+
+## Resources consulted
+
+- Node.js `fs` docs — for `appendFileSync`, `openSync`, and `readSync`.
+- AI assistance (ChatGPT) — consulted on safe file-writing patterns (append-only), recovery/replay logic, and using byte-offset reads (`fs.appendFileSync` + `fs.readSync`).
+
+
 ## Storage Notes
 
 - `events.log` is the source of truth.
