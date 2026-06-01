@@ -17,7 +17,7 @@ This service stores events in `events.log`, replays the log on startup, and serv
 ## Requirements
 
 - Node.js 18+
-- npm
+- pnpm
 - `.env` with:
 
 ```env
@@ -28,30 +28,34 @@ NODE_ENV=development
 ## Scripts
 
 ```bash
-npm run dev
-npm run build
-npm start
-npm run lint
-npm run format
+pnpm run dev
+pnpm run build
+pnpm start
+pnpm run lint
+pnpm run format
 ```
 
 ## Run Locally
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 After build:
 
 ```bash
-npm run build
-npm start
+git clone <repo-url>
+cd event-store
+pnpm install
+pnpm start
 ```
 
 ## API
 
-Base URL: `http://localhost:4000`
+```bash
+PORT=4000 pnpm start
+```
 
 ### Swagger
 
