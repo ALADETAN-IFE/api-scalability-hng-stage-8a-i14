@@ -5,6 +5,9 @@ import morgan from "morgan";
 
 const app = express();
 
+// Enable trust proxy for reverse proxy
+app.enable("trust proxy");
+
 // Parse JSON request bodies (allow non-object payloads like arrays or primitives)
 app.use(express.json({ strict: false }));
 
