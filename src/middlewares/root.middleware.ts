@@ -10,6 +10,9 @@ export const rootHandler = (_req: Request, res: Response) => {
       root: "/",
       health: "/api/v1/health",
       docs: "/api-docs",
+      allEventsId: "/events",
+      eventById: "/events/:id",
+      eventsStats: "/stats",
     },
   });
 };

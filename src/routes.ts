@@ -15,7 +15,11 @@ router.use(
   "/api-docs",
   swaggerUi.serve,
   (_req: Request, res: Response, next: NextFunction) => {
-    const spec = routeRegistry.generateOpenAPI("API SCALABILITY", "1.0.0");
+    const spec = routeRegistry.generateOpenAPI(
+      "API SCALABILITY",
+      "1.0.0",
+      `${_req.protocol}://${_req.get("host")}`,
+    );
     swaggerUi.setup(spec)(_req, res, next);
   },
 );
