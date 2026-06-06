@@ -15,12 +15,17 @@ router.use(
   "/api-docs",
   swaggerUi.serve,
   (_req: Request, res: Response, next: NextFunction) => {
+    const projectName = "API SCALABILITY";
     const spec = routeRegistry.generateOpenAPI(
-      "API SCALABILITY",
+      projectName,
       "1.0.0",
       `${_req.protocol}://${_req.get("host")}`,
     );
-    swaggerUi.setup(spec)(_req, res, next);
+    const options = {
+      customSiteTitle: projectName,
+    };
+
+    swaggerUi.setup(spec, options)(_req, res, next);
   },
 );
 
